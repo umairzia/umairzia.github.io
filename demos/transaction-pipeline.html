@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transaction Data-Quality Pipeline Demo | Umair Zia</title>
+  <meta name="description" content="Live demo of a transaction data-quality pipeline running on synthetic invoice data. Duplicates, price variances, orphan credits and math errors are flagged in the browser.">
+  <link rel="canonical" href="https://umairzia.github.io/demos/transaction-pipeline.html">
+  <meta name="robots" content="index,follow">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/demo.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../index.html">Umair Zia</a>
+      <nav class="site-nav" aria-label="Site sections">
+        <a href="../projects/transaction-data-quality-pipeline.html">Case study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark mode</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="demo-page wrap">
+    <h1>Transaction Data-Quality Pipeline</h1>
+    <p class="demo-intro">The real pipeline validates 11,000+ invoice and payment lines for a national restaurant-chain client. This page runs the same four checks in your browser on a synthetic data set, so you can see exactly what the pipeline catches and how the exceptions reach a reviewer.</p>
+    <p class="synthetic-note">All data on this page is synthetic. Maple Fork Restaurant Group, its locations, products, prices and every number below were generated for this demo and are recalculated live in your browser. No real business data is shown.</p>
+
+    <div class="tile-grid" id="kpi-tiles"></div>
+
+    <div class="viz-card">
+      <h2>Issues flagged by check</h2>
+      <p class="viz-sub">Four validation rules run over every line. Each bar counts the lines one rule flagged.</p>
+      <div id="chart-types"></div>
+    </div>
+
+    <div class="viz-card">
+      <h2>Flagged lines per week</h2>
+      <p class="viz-sub">Where the issues land across the 26 demo weeks. Hover a column for the count.</p>
+      <div id="chart-weeks"></div>
+    </div>
+
+    <div class="viz-card">
+      <h2>Exception list for review</h2>
+      <p class="viz-sub">The pipeline's output: every flagged line with its dollar impact, filterable by check. A person reviews each one before anything is corrected.</p>
+      <div class="filter-row" id="issue-filter" role="group" aria-label="Filter exceptions by check"></div>
+      <div id="exception-table"></div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn btn-secondary" href="../projects/transaction-data-quality-pipeline.html">Read the case study</a>
+      <a class="btn btn-secondary" href="../index.html#projects">All projects</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p id="footer-text">Umair Zia | Toronto, Ontario</p>
+    </div>
+  </footer>
+
+  <script src="../data/content.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script src="data/transactions.js"></script>
+  <script src="../assets/js/demo-viz.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var T = window.DEMO_TXN;
+    var V = window.VIZ;
+
+    /* ---------- the four checks, run live ---------- */
+
+    function detect() {
+      var flags = [];
+      var seen = {};
+      var invoicesByKey = {};
+      T.lines.forEach(function (l) {
+        if (l.type === "invoice") {
+          var k = l.product + "|" + l.location;
+          (invoicesByKey[k] = invoicesByKey[k] || []).push(l.date);
+        }
+      });
+      T.lines.forEach(function (l, idx) {
+        var sig = [l.id, l.date, l.location, l.product, l.qty, l.unitPrice, l.amount].join("|");
+        if (seen[sig] !== undefined) {
+          flags.push({ line: l, issue: "Duplicate", impact: l.amount });
+          return;
+        }
+        seen[sig] = idx;
+
+        var list = T.listPrices[l.product];
+        var calc = Math.round(l.qty * l.unitPrice * 100) / 100;
+        var expected = l.type === "credit" ? -calc : calc;
+        if (Math.abs(l.amount - expected) > 0.02) {
+          flags.push({ line: l, issue: "Math error", impact: l.amount - expected });
+          return;
+        }
+        if (l.type === "invoice" && list && Math.abs(l.unitPrice - list) / list > 0.05) {
+          flags.push({ line: l, issue: "Price variance", impact: (l.unitPrice - list) * l.qty });
+          return;
+        }
+        if (l.type === "credit") {
+          var dates = invoicesByKey[l.product + "|" + l.location] || [];
+          var cd = new Date(l.date + "T00:00:00Z").getTime();
+          var matched = dates.some(function (d) {
+            var t = new Date(d + "T00:00:00Z").getTime();
+            return t <= cd && cd - t <= 30 * 86400000;
+          });
+          if (!matched) {
+            flags.push({ line: l, issue: "Orphan credit", impact: l.amount });
+          }
+        }
+      });
+      return flags;
+    }
+
+    var flags = detect();
+    var atRisk = flags.reduce(function (s, f) { return s + Math.abs(f.impact); }, 0);
+    var issueOrder = ["Price variance", "Duplicate", "Orphan credit", "Math error"];
+    var byIssue = {};
+    issueOrder.forEach(function (n) { byIssue[n] = flags.filter(function (f) { return f.issue === n; }); });
+
+    /* ---------- KPI tiles ---------- */
+
+    var tiles = document.getElementById("kpi-tiles");
+    V.statTile(tiles, "Lines scanned", T.lines.length.toLocaleString("en-US"), T.client);
+    V.statTile(tiles, "Lines flagged", String(flags.length), (flags.length / T.lines.length * 100).toFixed(1) + "% of lines", true);
+    V.statTile(tiles, "Dollars at risk", V.fmtMoney(atRisk), "absolute impact of flagged lines", true);
+    V.statTile(tiles, "Clean lines", ((1 - flags.length / T.lines.length) * 100).toFixed(1) + "%", "pass all four checks");
+
+    /* ---------- charts ---------- */
+
+    V.hBars(document.getElementById("chart-types"), issueOrder.map(function (n) {
+      return {
+        label: n,
+        value: byIssue[n].length,
+        sub: V.fmtMoney(byIssue[n].reduce(function (s, f) { return s + Math.abs(f.impact); }, 0)) + " at risk"
+      };
+    }), function (v) { return String(v); });
+
+    var weekKeys = [];
+    var weekCounts = {};
+    var start = new Date("2026-05-04T00:00:00Z").getTime();
+    flags.forEach(function (f) {
+      var w = Math.floor((new Date(f.line.date + "T00:00:00Z").getTime() - start) / (7 * 86400000));
+      weekCounts[w] = (weekCounts[w] || 0) + 1;
+    });
+    var totalWeeks = 26;
+    var weekVals = [];
+    for (var w = 0; w < totalWeeks; w++) {
+      weekKeys.push("W" + (w + 1));
+      weekVals.push(weekCounts[w] || 0);
+    }
+    V.columns(document.getElementById("chart-weeks"), weekKeys,
+      [{ name: "Flagged lines", color: "var(--viz-s1)", values: weekVals }],
+      { label: "Flagged lines per week" });
+
+    /* ---------- exception table with filter ---------- */
+
+    function renderTable(filter) {
+      var rows = flags
+        .filter(function (f) { return filter === "All" || f.issue === filter; })
+        .sort(function (a, b) { return Math.abs(b.impact) - Math.abs(a.impact); })
+        .map(function (f) {
+          return [f.line.id, f.line.date, f.line.location.replace("Maple Fork ", ""), f.line.product, { tag: f.issue }, V.fmtMoneyFull(f.impact)];
+        });
+      V.table(document.getElementById("exception-table"),
+        ["Line", "Date", "Location", "Product", "Check", "Impact"], rows, [5]);
+    }
+
+    var filterRow = document.getElementById("issue-filter");
+    ["All"].concat(issueOrder).forEach(function (name) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "filter-btn";
+      btn.textContent = name;
+      btn.setAttribute("aria-pressed", name === "All" ? "true" : "false");
+      btn.addEventListener("click", function () {
+        filterRow.querySelectorAll(".filter-btn").forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+        btn.setAttribute("aria-pressed", "true");
+        renderTable(name);
+      });
+      filterRow.appendChild(btn);
+    });
+    renderTable("All");
+  })();
+  </script>
+</body>
+</html>
