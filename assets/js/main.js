@@ -156,11 +156,12 @@
       links.appendChild(link("projects/" + p.slug + ".html", "Case study"));
       if (p.github) {
         links.appendChild(link(p.github, "GitHub"));
-      } else {
-        links.appendChild(el("span", "no-repo", "Case study only"));
       }
       if (p.live) {
         links.appendChild(link(p.live, "Live demo"));
+      }
+      if (!p.github && !p.live) {
+        links.appendChild(el("span", "no-repo", "Case study only"));
       }
       card.appendChild(links);
 

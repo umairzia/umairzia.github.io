@@ -152,8 +152,9 @@ window.CONTENT = {
   /* ---------- PROJECTS ----------
      slug: the file name of the case-study page in /projects/ (do not change).
      tags: used by the filter buttons. Allowed tags: Python, SQL, Dashboards, Finance, AI, Research.
-     github: full repo link, or null to show "Case study only".
-     live: a live demo link, or null. */
+     github: full repo link, or null if there is no public repo.
+     live: a live demo link, or null. Demo pages on this site live in /demos/
+     and run on synthetic data only. */
   projects: [
     {
       slug: "transaction-data-quality-pipeline",
@@ -162,12 +163,12 @@ window.CONTENT = {
       tags: ["Python", "Finance"],
       tools: ["Python", "Pandas", "Jupyter"],
       github: null,
-      live: null,
+      live: "/demos/transaction-pipeline.html",
       caseStudy: {
         problem: "Invoice and payment data for a national restaurant-chain client arrived from several systems with duplicates, pricing mismatches and missing credits. Checking the lines by hand was slow and errors reached month-end reporting.",
         built: "An end-to-end Python and Jupyter pipeline that validates, cleans and flags anomalies in 11,000+ transaction lines. The pipeline applies validation rules for duplicates, price variances and missing records, then outputs a flagged exception list for human review.",
         tools: "Python, Pandas and Jupyter.",
-        result: "The pipeline supports the weekly reconciliation process that catches about $45K per year in double entries, faulty payments and missing credits, and it feeds the reporting workflow that cut turnaround by 72%, from 12.7 to 3.5 hours.",
+        result: "The pipeline supports the weekly reconciliation process that catches about $45K per year in double entries, faulty payments and missing credits, and it feeds the reporting workflow that cut turnaround by 72%, from 12.7 to 3.5 hours. The live demo on this site runs the same four checks on synthetic data in your browser.",
         learned: "Validation rules are only as good as the exception workflow behind them. Flagging a problem is cheap. Routing it to a person who can fix it is what protects the numbers."
       }
     },
@@ -178,12 +179,12 @@ window.CONTENT = {
       tags: ["Python", "Dashboards"],
       tools: ["Python", "Pandas"],
       github: null,
-      live: null,
+      live: "/demos/procurement-dashboard.html",
       caseStudy: {
         problem: "Restaurant and hospitality clients wanted visibility into their purchasing, but building a one-off report for each customer did not scale across 80+ accounts.",
         built: "A reusable Python-only kit that takes raw order data and generates an interactive procurement dashboard for any customer. The same code serves every account, so a new dashboard is a configuration change rather than a new build.",
         tools: "Python and Pandas, with no external BI license required.",
-        result: "Interactive procurement dashboards available for 80+ customers from a single codebase.",
+        result: "Interactive procurement dashboards available for 80+ customers from a single codebase. The live demo on this site is one generated output, built on synthetic data for a fictional customer.",
         learned: "A tool that produces reports beats a report. Writing the generator once removed the marginal cost of every dashboard after the first."
       }
     },

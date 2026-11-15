@@ -37,6 +37,7 @@ Things to keep in mind while editing:
 
 - `index.html` is the home page.
 - `projects/` holds one case-study page per project.
+- `demos/` holds live demo dashboards that run on synthetic data in the visitor's browser. The data files in `demos/data/` are entirely fictional.
 - `data/content.js` holds all the words. This is the file to edit.
 - `assets/css/style.css` holds the design. The site's accent color is the `--accent` variable at the top.
 - `assets/js/main.js` reads `content.js` and fills the pages in.

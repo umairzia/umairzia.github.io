@@ -1,0 +1,191 @@
+/* Styles for the live demo pages under /demos/.
+   Loaded after style.css, which defines the site theme variables. */
+
+:root {
+  --viz-s1: #2a78d6;
+  --viz-s2: #eb6834;
+  --viz-s3: #1baf7a;
+  --viz-s4: #eda100;
+  --viz-s5: #e87ba4;
+  --viz-grid: #e4e3dd;
+  --viz-axis: #c3c2b7;
+  --viz-muted: #6b6963;
+  --delta-up-bad: #b3261e;
+}
+
+:root[data-theme="dark"] {
+  --viz-s1: #3987e5;
+  --viz-s2: #d95926;
+  --viz-s3: #199e70;
+  --viz-s4: #c98500;
+  --viz-s5: #d55181;
+  --viz-grid: #273349;
+  --viz-axis: #3c4a66;
+  --viz-muted: #8e99ad;
+  --delta-up-bad: #f2847c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --viz-s1: #3987e5;
+    --viz-s2: #d95926;
+    --viz-s3: #199e70;
+    --viz-s4: #c98500;
+    --viz-s5: #d55181;
+    --viz-grid: #273349;
+    --viz-axis: #3c4a66;
+    --viz-muted: #8e99ad;
+    --delta-up-bad: #f2847c;
+  }
+}
+
+.demo-page { padding: 2.2rem 0 1rem; }
+
+.demo-page h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); margin: 0 0 0.4rem; }
+
+.demo-intro { color: var(--text-soft); max-width: 46rem; margin: 0 0 1rem; }
+
+.synthetic-note {
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-size: 0.92rem;
+  margin: 0 0 1.6rem;
+  max-width: 46rem;
+}
+
+.viz-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.2rem 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.viz-card h2 {
+  border: none;
+  display: block;
+  font-size: 1.05rem;
+  margin: 0 0 0.2rem;
+  padding: 0;
+}
+
+.viz-card .viz-sub {
+  color: var(--viz-muted);
+  font-size: 0.85rem;
+  margin: 0 0 0.9rem;
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+}
+
+.stat-tile .t-label { font-size: 0.83rem; color: var(--text-soft); margin-bottom: 0.15rem; }
+.stat-tile .t-value { font-size: 1.55rem; font-weight: 600; }
+.stat-tile .t-sub { font-size: 0.78rem; color: var(--viz-muted); margin-top: 0.15rem; }
+.stat-tile .t-sub.bad { color: var(--delta-up-bad); }
+
+.viz-svg { width: 100%; height: auto; display: block; }
+
+.viz-svg text {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.viz-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0.2rem 0 0.8rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+}
+
+.viz-legend li { display: flex; align-items: center; gap: 0.4rem; }
+
+.viz-legend .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.viz-legend .linekey { width: 16px; height: 0; border-top: 2.5px solid; border-radius: 2px; display: inline-block; }
+
+.viz-tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(10, 20, 40, 0.18);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+  z-index: 50;
+  max-width: 260px;
+  display: none;
+}
+
+.viz-tooltip .tt-title { color: var(--viz-muted); margin-bottom: 0.25rem; }
+
+.viz-tooltip .tt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.viz-tooltip .tt-key { width: 12px; height: 0; border-top: 2.5px solid; border-radius: 2px; flex: none; }
+.viz-tooltip .tt-val { font-weight: 600; }
+.viz-tooltip .tt-name { color: var(--text-soft); }
+
+/* data tables */
+
+.demo-table-wrap { overflow-x: auto; }
+
+table.demo-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.86rem;
+}
+
+.demo-table th {
+  text-align: left;
+  color: var(--viz-muted);
+  font-weight: 600;
+  border-bottom: 2px solid var(--viz-axis);
+  padding: 0.45rem 0.7rem 0.45rem 0;
+  white-space: nowrap;
+}
+
+.demo-table td {
+  border-bottom: 1px solid var(--viz-grid);
+  padding: 0.4rem 0.7rem 0.4rem 0;
+  white-space: nowrap;
+}
+
+.demo-table td.num, .demo-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.issue-tag {
+  display: inline-block;
+  background: var(--accent-soft);
+  border-radius: 5px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+@media (max-width: 420px) {
+  .tile-grid { grid-template-columns: 1fr 1fr; }
+  .viz-card { padding: 0.9rem 0.8rem 1rem; }
+}

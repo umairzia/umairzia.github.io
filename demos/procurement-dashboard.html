@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Procurement Dashboard Demo | Umair Zia</title>
+  <meta name="description" content="Live demo of a generated procurement dashboard on synthetic order data. Monthly spend by category, supplier price-trend detection and top products, computed in the browser.">
+  <link rel="canonical" href="https://umairzia.github.io/demos/procurement-dashboard.html">
+  <meta name="robots" content="index,follow">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/demo.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../index.html">Umair Zia</a>
+      <nav class="site-nav" aria-label="Site sections">
+        <a href="../projects/procurement-dashboard-generator.html">Case study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark mode</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="demo-page wrap">
+    <h1>Procurement Dashboard Generator</h1>
+    <p class="demo-intro">The real kit turns raw order data into a dashboard like this one for any of 80+ customers, with no BI license. This page is one generated output: a year of purchasing for a single restaurant customer, computed live in your browser, including the price-trend check that caught a real supplier increase.</p>
+    <p class="synthetic-note">All data on this page is synthetic. Cedar Lane Bistro, its orders, products, prices and every number below were generated for this demo and are recalculated live in your browser. No real business data is shown.</p>
+
+    <div class="tile-grid" id="kpi-tiles"></div>
+
+    <div class="viz-card">
+      <h2>Monthly spend by category</h2>
+      <p class="viz-sub">Where the budget goes each month. Hover a column for the category split.</p>
+      <div id="chart-monthly"></div>
+    </div>
+
+    <div class="viz-card">
+      <h2>Supplier price-trend check</h2>
+      <p class="viz-sub">Average unit price paid per month. The check compares the second half of the year against the first and flags any product whose price moved more than 5%. Two products trip it in July.</p>
+      <div id="chart-prices"></div>
+    </div>
+
+    <div class="viz-card">
+      <h2>Top products by annual spend</h2>
+      <p class="viz-sub">The ten products that carry the most spend, with the price-trend verdict for each.</p>
+      <div id="top-table"></div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn btn-secondary" href="../projects/procurement-dashboard-generator.html">Read the case study</a>
+      <a class="btn btn-secondary" href="../index.html#projects">All projects</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p id="footer-text">Umair Zia | Toronto, Ontario</p>
+    </div>
+  </footer>
+
+  <script src="../data/content.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script src="data/procurement.js"></script>
+  <script src="../assets/js/demo-viz.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var P = window.DEMO_PROC;
+    var V = window.VIZ;
+
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var CATS = ["Produce", "Dairy & Eggs", "Meat & Poultry", "Dry Goods", "Paper & Packaging"];
+
+    function monthIndex(dateStr) { return parseInt(dateStr.slice(5, 7), 10) - 1; }
+
+    /* ---------- aggregations ---------- */
+
+    var totalSpend = 0;
+    var spendByCatMonth = {};
+    CATS.forEach(function (c) { spendByCatMonth[c] = new Array(12).fill(0); });
+    var byProduct = {};
+
+    P.orders.forEach(function (o) {
+      totalSpend += o.amount;
+      var m = monthIndex(o.date);
+      spendByCatMonth[o.category][m] += o.amount;
+      var p = (byProduct[o.product] = byProduct[o.product] || { category: o.category, spend: 0, h1: [], h2: [], monthly: {} });
+      p.spend += o.amount;
+      (m < 6 ? p.h1 : p.h2).push(o.unitPrice);
+      (p.monthly[m] = p.monthly[m] || []).push(o.unitPrice);
+    });
+
+    function avg(arr) { return arr.reduce(function (s, v) { return s + v; }, 0) / arr.length; }
+
+    var priceAlerts = [];
+    Object.keys(byProduct).forEach(function (name) {
+      var p = byProduct[name];
+      if (!p.h1.length || !p.h2.length) { return; }
+      p.change = (avg(p.h2) - avg(p.h1)) / avg(p.h1);
+      if (Math.abs(p.change) > 0.05) { priceAlerts.push(name); }
+    });
+    priceAlerts.sort(function (a, b) { return byProduct[b].change - byProduct[a].change; });
+
+    var excess = 0;
+    priceAlerts.forEach(function (name) {
+      var p = byProduct[name];
+      var base = avg(p.h1);
+      P.orders.forEach(function (o) {
+        if (o.product === name && monthIndex(o.date) >= 6) {
+          excess += (o.unitPrice - base) * o.qty;
+        }
+      });
+    });
+
+    /* ---------- KPI tiles ---------- */
+
+    var tiles = document.getElementById("kpi-tiles");
+    V.statTile(tiles, "Annual spend", V.fmtMoney(totalSpend), P.customer + ", 2026");
+    V.statTile(tiles, "Order lines", P.orders.length.toLocaleString("en-US"), Object.keys(byProduct).length + " products");
+    V.statTile(tiles, "Average order line", V.fmtMoney(totalSpend / P.orders.length), "per line item");
+    V.statTile(tiles, "Price alerts", String(priceAlerts.length), V.fmtMoney(excess) + " excess spend since July", true);
+
+    /* ---------- monthly stacked columns ---------- */
+
+    var colors = ["var(--viz-s1)", "var(--viz-s2)", "var(--viz-s3)", "var(--viz-s4)", "var(--viz-s5)"];
+    V.columns(document.getElementById("chart-monthly"), MONTHS,
+      CATS.map(function (c, i) {
+        return { name: c, color: colors[i], values: spendByCatMonth[c].map(function (v) { return Math.round(v); }) };
+      }),
+      { money: true, label: "Monthly spend by category" });
+
+    /* ---------- price trend lines for flagged products ---------- */
+
+    var flagged = priceAlerts.slice(0, 2);
+    V.lines(document.getElementById("chart-prices"), MONTHS,
+      flagged.map(function (name, i) {
+        var p = byProduct[name];
+        var vals = MONTHS.map(function (_, m) {
+          return p.monthly[m] ? Math.round(avg(p.monthly[m]) * 100) / 100 : null;
+        });
+        for (var m = 0; m < 12; m++) { if (vals[m] === null) { vals[m] = m > 0 ? vals[m - 1] : avg(p.h1); } }
+        return { name: name + " (+" + Math.round(p.change * 100) + "%)", color: colors[i], values: vals };
+      }),
+      { money: true, endLabels: true, floor: true, label: "Average unit price per month for flagged products" });
+
+    /* ---------- top products table ---------- */
+
+    var top = Object.keys(byProduct)
+      .sort(function (a, b) { return byProduct[b].spend - byProduct[a].spend; })
+      .slice(0, 10)
+      .map(function (name) {
+        var p = byProduct[name];
+        var verdict = Math.abs(p.change) > 0.05
+          ? { tag: (p.change > 0 ? "+" : "") + Math.round(p.change * 100) + "% H2 vs H1" }
+          : "stable";
+        return [name, p.category, V.fmtMoney(p.spend), (p.spend / totalSpend * 100).toFixed(1) + "%", verdict];
+      });
+    V.table(document.getElementById("top-table"),
+      ["Product", "Category", "Spend", "Share", "Price trend"], top, [2, 3]);
+  })();
+  </script>
+</body>
+</html>
